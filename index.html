@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>White Page</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
     <style>
         * {
             margin: 0;
@@ -244,19 +243,27 @@
 </head>
 <body>
     <div class="container">
-        <h1>Player Registration</h1>
+        <h1>🎮 Registered Players</h1>
         
         <div id="message" class="message"></div>
         
-        <div class="input-section">
-            <input type="text" id="playerName" placeholder="Enter your name">
-            <button id="submit">Submit</button>
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Players</h3>
+                <p id="totalPlayers">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Last Updated</h3>
+                <p id="lastUpdated" style="font-size: 16px;">-</p>
+            </div>
         </div>
+
+        <button class="admin-btn view-all" onclick="loadPlayers()" style="margin-bottom: 20px;">🔄 Refresh Players</button>
 
         <table id="playersTable">
             <thead>
                 <tr>
-                    <th>ID</th>
+                    <th>#</th>
                     <th>Name</th>
                     <th>Registered At</th>
                 </tr>
@@ -270,26 +277,13 @@
         <div class="admin-panel">
             <h2>🔧 Database Inspector</h2>
             
-            <div class="stats">
-                <div class="stat-card">
-                    <h3>Total Players</h3>
-                    <p id="totalPlayers">0</p>
-                </div>
-                <div class="stat-card">
-                    <h3>Database Size</h3>
-                    <p id="dbSize">0 KB</p>
-                </div>
-            </div>
-
             <div class="query-section">
-                <label for="sqlQuery"><strong>SQL Query:</strong></label>
-                <textarea id="sqlQuery" placeholder="Enter SQL query (e.g., SELECT * FROM players)">SELECT * FROM players</textarea>
+                <label><strong>Database Actions:</strong></label>
                 
                 <div class="button-group">
-                    <button class="admin-btn execute" onclick="executeQuery()">Execute Query</button>
-                    <button class="admin-btn view-all" onclick="viewAllData()">View All Data</button>
+                    <button class="admin-btn view-all" onclick="viewRawData()">View Raw JSON</button>
                     <button class="admin-btn export" onclick="exportDatabase()">Export as JSON</button>
-                    <button class="admin-btn clear" onclick="clearDatabase()">Clear Database</button>
+                    <button class="admin-btn clear" onclick="clearDatabase()">Clear All Data</button>
                 </div>
             </div>
 
@@ -300,80 +294,12 @@
     </div>
 
     <script>
-        let db;
+        // Shared database configuration
+        const DB_API_URL = 'https://api.jsonbin.io/v3/b/68f777cb43b1c97be975bb7e';
+        const DB_API_KEY = '$2a$10$nrEAvkxKI94V3ZAk5YxiQezRgOGew.SEYJUZGHDog17c2dhPqacrq'; // You'll need to replace this
 
-        // Initialize SQL.js and create database
-        async function initDB() {
-            const SQL = await initSqlJs({
-                locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
-            });
-
-            // Check if we have a saved database in localStorage
-            const savedDB = localStorage.getItem('playerDB');
-            
-            if (savedDB) {
-                // Load existing database
-                const uint8Array = new Uint8Array(JSON.parse(savedDB));
-                db = new SQL.Database(uint8Array);
-            } else {
-                // Create new database
-                db = new SQL.Database();
-                
-                // Create players table
-                db.run(`
-                    CREATE TABLE players (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        name TEXT NOT NULL,
-                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                    )
-                `);
-            }
-
-            // Load and display existing players
-            loadPlayers();
-        }
-
-        // Save database to localStorage
-        function saveDB() {
-            const data = db.export();
-            const buffer = Array.from(data);
-            localStorage.setItem('playerDB', JSON.stringify(buffer));
-        }
-
-        // Load players from database and display in table
-        function loadPlayers() {
-            const tableBody = document.getElementById('tableBody');
-            tableBody.innerHTML = '';
-
-            const result = db.exec('SELECT * FROM players ORDER BY id DESC');
-            
-            if (result.length > 0) {
-                const rows = result[0].values;
-                rows.forEach(row => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td>${row[0]}</td>
-                        <td>${row[1]}</td>
-                        <td>${row[2]}</td>
-                    `;
-                    tableBody.appendChild(tr);
-                });
-            }
-
-            // Update stats
-            updateStats();
-        }
-
-        // Update database statistics
-        function updateStats() {
-            const countResult = db.exec('SELECT COUNT(*) as count FROM players');
-            const count = countResult.length > 0 ? countResult[0].values[0][0] : 0;
-            document.getElementById('totalPlayers').textContent = count;
-
-            const dbData = db.export();
-            const sizeKB = (dbData.length / 1024).toFixed(2);
-            document.getElementById('dbSize').textContent = sizeKB + ' KB';
-        }
+        // For demo purposes, using localStorage as fallback
+        const USE_LOCAL_STORAGE = true; // Set to false when you have JSONBin credentials
 
         // Show message to user
         function showMessage(text, type) {
@@ -387,141 +313,85 @@
             }, 3000);
         }
 
-        // Add player to database
-        function addPlayer(name) {
-            if (!name.trim()) {
-                showMessage('Please enter a name', 'error');
-                return;
-            }
-
+        // Load players from shared database
+        async function loadPlayers() {
             try {
-                db.run('INSERT INTO players (name) VALUES (?)', [name]);
-                saveDB();
-                loadPlayers();
-                showMessage(`Player "${name}" added successfully!`, 'success');
-                document.getElementById('playerName').value = '';
-            } catch (error) {
-                showMessage('Error adding player: ' + error.message, 'error');
-            }
-        }
+                let players = [];
 
-        // Event listeners
-        document.getElementById('submit').addEventListener('click', () => {
-            const name = document.getElementById('playerName').value;
-            addPlayer(name);
-        });
+                if (USE_LOCAL_STORAGE) {
+                    // Using localStorage for demo
+                    players = JSON.parse(localStorage.getItem('sharedPlayers') || '[]');
+                } else {
+                    // Using JSONBin API (requires setup)
+                    const response = await fetch(DB_API_URL, {
+                        method: 'GET',
+                        headers: {
+                            'X-Master-Key': DB_API_KEY
+                        }
+                    });
 
-        document.getElementById('playerName').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const name = document.getElementById('playerName').value;
-                addPlayer(name);
-            }
-        });
-
-        // Execute custom SQL query
-        function executeQuery() {
-            const query = document.getElementById('sqlQuery').value.trim();
-            if (!query) {
-                showMessage('Please enter a SQL query', 'error');
-                return;
-            }
-
-            try {
-                const result = db.exec(query);
-                displayQueryResult(result, query);
-                
-                // If it was a modifying query, update the display
-                if (query.toLowerCase().includes('insert') || 
-                    query.toLowerCase().includes('update') || 
-                    query.toLowerCase().includes('delete')) {
-                    saveDB();
-                    loadPlayers();
-                    showMessage('Query executed successfully', 'success');
+                    const data = await response.json();
+                    players = data.record.players || [];
                 }
+
+                displayPlayers(players);
+                updateStats(players);
+                showMessage('✅ Players loaded successfully', 'success');
             } catch (error) {
-                displayQueryResult(null, query, error.message);
-                showMessage('Query error: ' + error.message, 'error');
+                showMessage('❌ Error loading players: ' + error.message, 'error');
             }
         }
 
-        // Display query results
-        function displayQueryResult(result, query, error = null) {
+        // Display players in table
+        function displayPlayers(players) {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+
+            if (players.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 30px; color: #999;">No players registered yet</td></tr>';
+                return;
+            }
+
+            // Sort by most recent first
+            players.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            players.forEach((player, index) => {
+                const tr = document.createElement('tr');
+                const date = new Date(player.created_at);
+                const formattedDate = date.toLocaleString();
+                
+                tr.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td><strong>${player.name}</strong></td>
+                    <td>${formattedDate}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Update statistics
+        function updateStats(players) {
+            document.getElementById('totalPlayers').textContent = players.length;
+            
+            const now = new Date();
+            document.getElementById('lastUpdated').textContent = now.toLocaleTimeString();
+        }
+
+        // View raw JSON data
+        function viewRawData() {
+            const players = JSON.parse(localStorage.getItem('sharedPlayers') || '[]');
             const resultDiv = document.getElementById('queryResult');
             const resultContent = document.getElementById('resultContent');
             
             resultDiv.style.display = 'block';
-            
-            if (error) {
-                resultContent.textContent = `❌ Error executing query:\n${error}\n\nQuery:\n${query}`;
-                return;
-            }
-
-            let output = `Query: ${query}\n\n`;
-            
-            if (result.length === 0) {
-                output += '✅ Query executed successfully (no results returned)';
-            } else {
-                result.forEach((res, idx) => {
-                    output += `Result Set ${idx + 1}:\n`;
-                    output += `Columns: ${res.columns.join(', ')}\n\n`;
-                    
-                    if (res.values.length === 0) {
-                        output += 'No rows returned\n';
-                    } else {
-                        // Create a formatted table
-                        const colWidths = res.columns.map((col, i) => {
-                            const maxDataWidth = Math.max(...res.values.map(row => 
-                                String(row[i]).length
-                            ));
-                            return Math.max(col.length, maxDataWidth);
-                        });
-
-                        // Header
-                        output += res.columns.map((col, i) => 
-                            col.padEnd(colWidths[i])
-                        ).join(' | ') + '\n';
-                        
-                        output += colWidths.map(w => '-'.repeat(w)).join('-+-') + '\n';
-                        
-                        // Rows
-                        res.values.forEach(row => {
-                            output += row.map((val, i) => 
-                                String(val).padEnd(colWidths[i])
-                            ).join(' | ') + '\n';
-                        });
-                        
-                        output += `\nTotal rows: ${res.values.length}\n`;
-                    }
-                });
-            }
-            
-            resultContent.textContent = output;
-        }
-
-        // View all data in database
-        function viewAllData() {
-            document.getElementById('sqlQuery').value = 'SELECT * FROM players';
-            executeQuery();
+            resultContent.textContent = JSON.stringify(players, null, 2);
         }
 
         // Export database as JSON
         function exportDatabase() {
             try {
-                const result = db.exec('SELECT * FROM players');
-                let data = [];
-                
-                if (result.length > 0) {
-                    const columns = result[0].columns;
-                    data = result[0].values.map(row => {
-                        const obj = {};
-                        columns.forEach((col, idx) => {
-                            obj[col] = row[idx];
-                        });
-                        return obj;
-                    });
-                }
-
-                const json = JSON.stringify(data, null, 2);
+                const players = JSON.parse(localStorage.getItem('sharedPlayers') || '[]');
+                const json = JSON.stringify(players, null, 2);
                 
                 // Create download link
                 const blob = new Blob([json], { type: 'application/json' });
@@ -532,33 +402,35 @@
                 a.click();
                 URL.revokeObjectURL(url);
                 
-                showMessage('Database exported successfully', 'success');
+                showMessage('✅ Database exported successfully', 'success');
             } catch (error) {
-                showMessage('Export error: ' + error.message, 'error');
+                showMessage('❌ Export error: ' + error.message, 'error');
             }
         }
 
         // Clear all data from database
         function clearDatabase() {
-            if (!confirm('Are you sure you want to delete all player data? This cannot be undone!')) {
+            if (!confirm('⚠️ Are you sure you want to delete all player data? This cannot be undone!')) {
                 return;
             }
 
             try {
-                db.run('DELETE FROM players');
-                saveDB();
+                localStorage.setItem('sharedPlayers', '[]');
                 loadPlayers();
-                showMessage('Database cleared successfully', 'success');
+                showMessage('✅ Database cleared successfully', 'success');
                 
                 // Clear query result display
                 document.getElementById('queryResult').style.display = 'none';
             } catch (error) {
-                showMessage('Error clearing database: ' + error.message, 'error');
+                showMessage('❌ Error clearing database: ' + error.message, 'error');
             }
         }
 
-        // Initialize database when page loads
-        initDB();
+        // Auto-refresh every 5 seconds
+        setInterval(loadPlayers, 5000);
+
+        // Load players when page loads
+        loadPlayers();
     </script>
 </body>
 </html>
