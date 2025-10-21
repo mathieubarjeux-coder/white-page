@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>White Page</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
     <style>
         * {
             margin: 0;
@@ -12,15 +13,552 @@
         }
         
         body {
-            background-color: black;
+            background-color: white;
             width: 100%;
-            height: 100vh;
+            min-height: 100vh;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+
+        #playerName {
+            padding: 10px 15px;
+            border: 2px solid #667eea;
+            border-radius: 5px;
+            font-size: 16px;
+            width: 300px;
+        }
+
+        #playerName:focus {
+            outline: none;
+            border-color: #764ba2;
+        }
+
+        #submit {
+            padding: 10px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #submit:hover {
+            transform: scale(1.05);
+        }
+
+        #submit:active {
+            transform: scale(0.95);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
             overflow: hidden;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+
+        th {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #eee;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        .message {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .admin-panel {
+            margin-top: 40px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #667eea;
+        }
+
+        .admin-panel h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .query-section {
+            margin-bottom: 20px;
+        }
+
+        #sqlQuery {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .admin-btn {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+
+        .admin-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .admin-btn.execute {
+            background: #28a745;
+            color: white;
+        }
+
+        .admin-btn.view-all {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .admin-btn.export {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .admin-btn.clear {
+            background: #dc3545;
+            color: white;
+        }
+
+        .query-result {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            max-height: 400px;
+            overflow: auto;
+        }
+
+        .query-result pre {
+            margin: 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-card h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
         }
     </style>
 </head>
 <body>
+    <div class="container">
+        <h1>Player Registration</h1>
+        
+        <div id="message" class="message"></div>
+        
+        <div class="input-section">
+            <input type="text" id="playerName" placeholder="Enter your name">
+            <button id="submit">Submit</button>
+        </div>
+
+        <table id="playersTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Registered At</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Players will be inserted here -->
+            </tbody>
+        </table>
+
+        <!-- Admin Panel -->
+        <div class="admin-panel">
+            <h2>🔧 Database Inspector</h2>
+            
+            <div class="stats">
+                <div class="stat-card">
+                    <h3>Total Players</h3>
+                    <p id="totalPlayers">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Database Size</h3>
+                    <p id="dbSize">0 KB</p>
+                </div>
+            </div>
+
+            <div class="query-section">
+                <label for="sqlQuery"><strong>SQL Query:</strong></label>
+                <textarea id="sqlQuery" placeholder="Enter SQL query (e.g., SELECT * FROM players)">SELECT * FROM players</textarea>
+                
+                <div class="button-group">
+                    <button class="admin-btn execute" onclick="executeQuery()">Execute Query</button>
+                    <button class="admin-btn view-all" onclick="viewAllData()">View All Data</button>
+                    <button class="admin-btn export" onclick="exportDatabase()">Export as JSON</button>
+                    <button class="admin-btn clear" onclick="clearDatabase()">Clear Database</button>
+                </div>
+            </div>
+
+            <div id="queryResult" class="query-result" style="display: none;">
+                <pre id="resultContent"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let db;
+
+        // Initialize SQL.js and create database
+        async function initDB() {
+            const SQL = await initSqlJs({
+                locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+            });
+
+            // Check if we have a saved database in localStorage
+            const savedDB = localStorage.getItem('playerDB');
+            
+            if (savedDB) {
+                // Load existing database
+                const uint8Array = new Uint8Array(JSON.parse(savedDB));
+                db = new SQL.Database(uint8Array);
+            } else {
+                // Create new database
+                db = new SQL.Database();
+                
+                // Create players table
+                db.run(`
+                    CREATE TABLE players (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        name TEXT NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                `);
+            }
+
+            // Load and display existing players
+            loadPlayers();
+        }
+
+        // Save database to localStorage
+        function saveDB() {
+            const data = db.export();
+            const buffer = Array.from(data);
+            localStorage.setItem('playerDB', JSON.stringify(buffer));
+        }
+
+        // Load players from database and display in table
+        function loadPlayers() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+
+            const result = db.exec('SELECT * FROM players ORDER BY id DESC');
+            
+            if (result.length > 0) {
+                const rows = result[0].values;
+                rows.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row[0]}</td>
+                        <td>${row[1]}</td>
+                        <td>${row[2]}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            // Update stats
+            updateStats();
+        }
+
+        // Update database statistics
+        function updateStats() {
+            const countResult = db.exec('SELECT COUNT(*) as count FROM players');
+            const count = countResult.length > 0 ? countResult[0].values[0][0] : 0;
+            document.getElementById('totalPlayers').textContent = count;
+
+            const dbData = db.export();
+            const sizeKB = (dbData.length / 1024).toFixed(2);
+            document.getElementById('dbSize').textContent = sizeKB + ' KB';
+        }
+
+        // Show message to user
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        // Add player to database
+        function addPlayer(name) {
+            if (!name.trim()) {
+                showMessage('Please enter a name', 'error');
+                return;
+            }
+
+            try {
+                db.run('INSERT INTO players (name) VALUES (?)', [name]);
+                saveDB();
+                loadPlayers();
+                showMessage(`Player "${name}" added successfully!`, 'success');
+                document.getElementById('playerName').value = '';
+            } catch (error) {
+                showMessage('Error adding player: ' + error.message, 'error');
+            }
+        }
+
+        // Event listeners
+        document.getElementById('submit').addEventListener('click', () => {
+            const name = document.getElementById('playerName').value;
+            addPlayer(name);
+        });
+
+        document.getElementById('playerName').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const name = document.getElementById('playerName').value;
+                addPlayer(name);
+            }
+        });
+
+        // Execute custom SQL query
+        function executeQuery() {
+            const query = document.getElementById('sqlQuery').value.trim();
+            if (!query) {
+                showMessage('Please enter a SQL query', 'error');
+                return;
+            }
+
+            try {
+                const result = db.exec(query);
+                displayQueryResult(result, query);
+                
+                // If it was a modifying query, update the display
+                if (query.toLowerCase().includes('insert') || 
+                    query.toLowerCase().includes('update') || 
+                    query.toLowerCase().includes('delete')) {
+                    saveDB();
+                    loadPlayers();
+                    showMessage('Query executed successfully', 'success');
+                }
+            } catch (error) {
+                displayQueryResult(null, query, error.message);
+                showMessage('Query error: ' + error.message, 'error');
+            }
+        }
+
+        // Display query results
+        function displayQueryResult(result, query, error = null) {
+            const resultDiv = document.getElementById('queryResult');
+            const resultContent = document.getElementById('resultContent');
+            
+            resultDiv.style.display = 'block';
+            
+            if (error) {
+                resultContent.textContent = `❌ Error executing query:\n${error}\n\nQuery:\n${query}`;
+                return;
+            }
+
+            let output = `Query: ${query}\n\n`;
+            
+            if (result.length === 0) {
+                output += '✅ Query executed successfully (no results returned)';
+            } else {
+                result.forEach((res, idx) => {
+                    output += `Result Set ${idx + 1}:\n`;
+                    output += `Columns: ${res.columns.join(', ')}\n\n`;
+                    
+                    if (res.values.length === 0) {
+                        output += 'No rows returned\n';
+                    } else {
+                        // Create a formatted table
+                        const colWidths = res.columns.map((col, i) => {
+                            const maxDataWidth = Math.max(...res.values.map(row => 
+                                String(row[i]).length
+                            ));
+                            return Math.max(col.length, maxDataWidth);
+                        });
+
+                        // Header
+                        output += res.columns.map((col, i) => 
+                            col.padEnd(colWidths[i])
+                        ).join(' | ') + '\n';
+                        
+                        output += colWidths.map(w => '-'.repeat(w)).join('-+-') + '\n';
+                        
+                        // Rows
+                        res.values.forEach(row => {
+                            output += row.map((val, i) => 
+                                String(val).padEnd(colWidths[i])
+                            ).join(' | ') + '\n';
+                        });
+                        
+                        output += `\nTotal rows: ${res.values.length}\n`;
+                    }
+                });
+            }
+            
+            resultContent.textContent = output;
+        }
+
+        // View all data in database
+        function viewAllData() {
+            document.getElementById('sqlQuery').value = 'SELECT * FROM players';
+            executeQuery();
+        }
+
+        // Export database as JSON
+        function exportDatabase() {
+            try {
+                const result = db.exec('SELECT * FROM players');
+                let data = [];
+                
+                if (result.length > 0) {
+                    const columns = result[0].columns;
+                    data = result[0].values.map(row => {
+                        const obj = {};
+                        columns.forEach((col, idx) => {
+                            obj[col] = row[idx];
+                        });
+                        return obj;
+                    });
+                }
+
+                const json = JSON.stringify(data, null, 2);
+                
+                // Create download link
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `players_database_${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showMessage('Database exported successfully', 'success');
+            } catch (error) {
+                showMessage('Export error: ' + error.message, 'error');
+            }
+        }
+
+        // Clear all data from database
+        function clearDatabase() {
+            if (!confirm('Are you sure you want to delete all player data? This cannot be undone!')) {
+                return;
+            }
+
+            try {
+                db.run('DELETE FROM players');
+                saveDB();
+                loadPlayers();
+                showMessage('Database cleared successfully', 'success');
+                
+                // Clear query result display
+                document.getElementById('queryResult').style.display = 'none';
+            } catch (error) {
+                showMessage('Error clearing database: ' + error.message, 'error');
+            }
+        }
+
+        // Initialize database when page loads
+        initDB();
+    </script>
 </body>
 </html>
-
-
