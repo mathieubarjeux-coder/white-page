@@ -249,10 +249,74 @@
                         </tr>
                         <tr>
                             <td class="category-cell">Corporation</td>
-                            <td><input type="number" class="score-input" data-player="1" data-category="corporation" value="0"></td>
-                            <td><input type="number" class="score-input" data-player="2" data-category="corporation" value="0"></td>
-                            <td><input type="number" class="score-input" data-player="3" data-category="corporation" value="0"></td>
-                            <td><input type="number" class="score-input" data-player="4" data-category="corporation" value="0"></td>
+                            <td>
+                                <select class="score-input" data-player="1" data-category="corporation" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; text-align: center; font-size: 14px;">
+                                    <option value="0">Select Corporation</option>
+                                    <option value="0">Credicor (0)</option>
+                                    <option value="3">Ecoline (3)</option>
+                                    <option value="5">Helion (5)</option>
+                                    <option value="2">Mining Guild (2)</option>
+                                    <option value="4">Interplanetary Cinematics (4)</option>
+                                    <option value="1">Inventrix (1)</option>
+                                    <option value="3">Phobolog (3)</option>
+                                    <option value="2">Tharsis Republic (2)</option>
+                                    <option value="4">Thorgate (4)</option>
+                                    <option value="5">United Nations Mars Initiative (5)</option>
+                                    <option value="3">Teractor (3)</option>
+                                    <option value="2">Saturn Systems (2)</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select class="score-input" data-player="2" data-category="corporation" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; text-align: center; font-size: 14px;">
+                                    <option value="0">Select Corporation</option>
+                                    <option value="0">Credicor (0)</option>
+                                    <option value="3">Ecoline (3)</option>
+                                    <option value="5">Helion (5)</option>
+                                    <option value="2">Mining Guild (2)</option>
+                                    <option value="4">Interplanetary Cinematics (4)</option>
+                                    <option value="1">Inventrix (1)</option>
+                                    <option value="3">Phobolog (3)</option>
+                                    <option value="2">Tharsis Republic (2)</option>
+                                    <option value="4">Thorgate (4)</option>
+                                    <option value="5">United Nations Mars Initiative (5)</option>
+                                    <option value="3">Teractor (3)</option>
+                                    <option value="2">Saturn Systems (2)</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select class="score-input" data-player="3" data-category="corporation" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; text-align: center; font-size: 14px;">
+                                    <option value="0">Select Corporation</option>
+                                    <option value="0">Credicor (0)</option>
+                                    <option value="3">Ecoline (3)</option>
+                                    <option value="5">Helion (5)</option>
+                                    <option value="2">Mining Guild (2)</option>
+                                    <option value="4">Interplanetary Cinematics (4)</option>
+                                    <option value="1">Inventrix (1)</option>
+                                    <option value="3">Phobolog (3)</option>
+                                    <option value="2">Tharsis Republic (2)</option>
+                                    <option value="4">Thorgate (4)</option>
+                                    <option value="5">United Nations Mars Initiative (5)</option>
+                                    <option value="3">Teractor (3)</option>
+                                    <option value="2">Saturn Systems (2)</option>
+                                </select>
+                            </td>
+                            <td>
+                                <select class="score-input" data-player="4" data-category="corporation" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 3px; text-align: center; font-size: 14px;">
+                                    <option value="0">Select Corporation</option>
+                                    <option value="0">Credicor (0)</option>
+                                    <option value="3">Ecoline (3)</option>
+                                    <option value="5">Helion (5)</option>
+                                    <option value="2">Mining Guild (2)</option>
+                                    <option value="4">Interplanetary Cinematics (4)</option>
+                                    <option value="1">Inventrix (1)</option>
+                                    <option value="3">Phobolog (3)</option>
+                                    <option value="2">Tharsis Republic (2)</option>
+                                    <option value="4">Thorgate (4)</option>
+                                    <option value="5">United Nations Mars Initiative (5)</option>
+                                    <option value="3">Teractor (3)</option>
+                                    <option value="2">Saturn Systems (2)</option>
+                                </select>
+                            </td>
                         </tr>
                         <tr>
                             <td class="category-cell">TR</td>
@@ -414,29 +478,23 @@
             // Update title
             document.getElementById('scorecardTitle').textContent = `${game.name.toUpperCase()} - FINAL SCORE`;
             
-            // Load existing scorecard if available
-            const existingScorecard = scorecards.find(s => s.gameId === gameId);
-            
-            if (existingScorecard) {
-                // Populate with existing data
-                for (let i = 1; i <= 4; i++) {
-                    const playerData = existingScorecard.players[i - 1];
-                    if (playerData) {
-                        document.getElementById(`player${i}Name`).value = playerData.name || '';
-                        Object.keys(playerData.scores).forEach(category => {
-                            const input = document.querySelector(`input[data-player="${i}"][data-category="${category}"]`);
-                            if (input) input.value = playerData.scores[category];
-                        });
-                    }
-                }
-            } else {
-                // Populate with game players
-                game.players.forEach((player, index) => {
-                    if (index < 4) {
-                        document.getElementById(`player${index + 1}Name`).value = player.name;
-                    }
+            // Clear all scores first
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`player${i}Name`).value = '';
+                document.querySelectorAll(`input[data-player="${i}"].score-input`).forEach(input => {
+                    input.value = 0;
+                });
+                document.querySelectorAll(`select[data-player="${i}"].score-input`).forEach(select => {
+                    select.value = 0;
                 });
             }
+            
+            // Only populate player names from the game
+            game.players.forEach((player, index) => {
+                if (index < 4) {
+                    document.getElementById(`player${index + 1}Name`).value = player.name;
+                }
+            });
 
             // Show scorecard section
             document.getElementById('scorecardSection').classList.remove('hidden');
